@@ -1,0 +1,43 @@
+name: API tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  newman:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: user_db
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -proot"
+          --health-interval=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm ci
+      - name: Start API
+        run: |
+          nohup node server.js > server.log 2>&1 &
+          npx --yes wait-on http://localhost:3000/health
+        env:
+          DB_HOST: 127.0.0.1
+          DB_USER: root
+          DB_PASSWORD: root
+          DB_NAME: user_db
+      - name: Run Postman collection with Newman
+        run: npx newman run postman/users-api.postman_collection.json --env-var baseUrl=http://localhost:3000 -d postman/names.csv --reporters cli,junit --reporter-junit-export results.xml
+      - name: Show server log on failure
+        if: failure()
+        run: cat server.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: newman-results
+          path: results.xml
