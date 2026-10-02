@@ -1,0 +1,224 @@
+{
+  "info": {
+    "name": "Users API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health check",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('DB is up', () => pm.expect(pm.response.json().db).to.eql('up'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create user",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/users",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"{{userName}}\",\n  \"email\": \"{{userEmail}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const names = [\"Ram\", \"Sita\", \"Ravi\", \"Hema\", \"Kiran\", \"Madhu\", \"Veera\", \"Shiva\", \"Rani\", \"Hari\", \"Geetha\", \"Mani\", \"Govind\", \"Swetha\", \"Bala\", \"Sri\"];",
+              "const pick = () => names[Math.floor(Math.random() * names.length)];",
+              "// Use the name from the Runner data file (names.csv) if present, else pick a random one",
+              "const name = pm.iterationData.get('name') || pick();",
+              "pm.collectionVariables.set('userName', name);",
+              "pm.collectionVariables.set('userEmail', name.toLowerCase() + Date.now() + '@example.com');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.test('Returns id', () => pm.expect(body.id).to.be.a('number'));",
+              "pm.test('Name matches request', () => pm.expect(body.name).to.eql(pm.collectionVariables.get('userName')));",
+              "pm.collectionVariables.set('userId', body.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create user - missing email (negative test)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/users",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Ram\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get all users",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/users"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('Response is an array', () => pm.expect(pm.response.json()).to.be.an('array'));",
+              "pm.test('Responds in under 500ms', () => pm.expect(pm.response.responseTime).to.be.below(500));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get user by ID",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/users/{{userId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('Correct user', () => pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('userId')));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Update user",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/users/{{userId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"{{updatedName}}\",\n  \"email\": \"{{updatedEmail}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const names = [\"Ram\", \"Sita\", \"Ravi\", \"Hema\", \"Kiran\", \"Madhu\", \"Veera\", \"Shiva\", \"Rani\", \"Hari\", \"Geetha\", \"Mani\", \"Govind\", \"Swetha\", \"Bala\", \"Sri\"];",
+              "const pick = () => names[Math.floor(Math.random() * names.length)];",
+              "const name = pick();",
+              "pm.collectionVariables.set('updatedName', name);",
+              "pm.collectionVariables.set('updatedEmail', name.toLowerCase() + Date.now() + '@example.com');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('Name updated', () => pm.expect(pm.response.json().name).to.eql(pm.collectionVariables.get('updatedName')));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Delete user",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/users/{{userId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get deleted user (should be 404)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/users/{{userId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 404', () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

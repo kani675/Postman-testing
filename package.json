@@ -1,0 +1,16 @@
+{
+  "name": "postman-devops-demo",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test:api": "newman run postman/users-api.postman_collection.json --env-var baseUrl=http://localhost:3000"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "mysql2": "^3.11.0"
+  },
+  "devDependencies": {
+    "newman": "^6.2.1"
+  }
+}
